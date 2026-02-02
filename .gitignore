@@ -1,0 +1,70 @@
+# TeamsFx files
+env/
+env/.env.*.user
+env/.env.local
+.localConfigs.playground
+.localConfigs
+.notification.localstore.json
+.notification.playgroundstore.json
+appPackage/build
+
+# dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.user
+*.pem
+*.key
+*.crt
+
+# misc
+.deployment
+.DS_Store
+.vscode-profile
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# build
+lib/
+dist/
+build/
+
+# Dev tool directories
+/devTools/
+devTools/node_modules/
+
+# Ignore database files
+src/storage/conversations.db
+src/storage/*.db
+
+# IDE
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Local tunnel and connection files
+.localDevTunnel
+devtunnel.json
+
+# Azure and deployment
+azure.local.bicep
+*.tfstate
+*.tfstate.*

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceBaseName": {
+      "value": "collaborator${{RESOURCE_SUFFIX}}"
+    },
+    "webAppSKU": {
+      "value": "S1"
+    },
+    "botDisplayName": {
+      "value": "Mela Notetaker"
+    },
+    "AZURE_OPENAI_ENDPOINT": {
+      "value": "${{AZURE_OPENAI_ENDPOINT}}"
+    },
+    "AZURE_OPENAI_KEY": {
+      "value": "${{AZURE_OPENAI_KEY}}"
+    },
+    "AZURE_OPENAI_CHAT_DEPLOYMENT": {
+      "value": "${{AZURE_OPENAI_CHAT_DEPLOYMENT}}"
+    },
+    "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": {
+      "value": "${{AZURE_OPENAI_EMBEDDING_DEPLOYMENT}}"
+    },
+    "AZURE_OPENAI_API_VERSION": {
+      "value": "${{AZURE_OPENAI_API_VERSION}}"
+    },
+    "AAD_APP_CLIENT_ID": {
+      "value": "${{AAD_APP_CLIENT_ID}}"
+    },
+    "AAD_APP_CLIENT_SECRET": {
+      "value": "${{SECRET_AAD_APP_CLIENT_SECRET}}"
+    },
+    "AAD_APP_TENANT_ID": {
+      "value": "${{AAD_APP_TENANT_ID}}"
+    },
+    "AZURE_SEARCH_ENDPOINT": {
+      "value": "${{AZURE_SEARCH_ENDPOINT}}"
+    },
+    "AZURE_SEARCH_KEY": {
+      "value": "${{SECRET_AZURE_SEARCH_KEY}}"
+    },
+    "AZURE_SEARCH_INDEX_NAME": {
+      "value": "${{AZURE_SEARCH_INDEX_NAME}}"
+    },
+    "AZURE_SPEECH_ENDPOINT": {
+      "value": "${{AZURE_SPEECH_ENDPOINT}}"
+    },
+    "AZURE_SPEECH_KEY": {
+      "value": "${{SECRET_AZURE_SPEECH_KEY}}"
+    },
+    "AZURE_SPEECH_REGION": {
+      "value": "${{AZURE_SPEECH_REGION}}"
+    },
+    "APPINSIGHTS_INSTRUMENTATIONKEY": {
+      "value": "${{APPINSIGHTS_INSTRUMENTATIONKEY}}"
+    },
+    "BOT_EMAIL_ADDRESS": {
+      "value": "${{BOT_EMAIL_ADDRESS}}"
+    },
+    "existingSqlServerFqdn": {
+      "value": "${{EXISTING_SQL_SERVER_FQDN}}"
+    },
+    "existingSqlDatabaseName": {
+      "value": "${{EXISTING_SQL_DATABASE_NAME}}"
+    },
+    "sqlAdminLogin": {
+      "value": "${{SQL_ADMIN_LOGIN}}"
+    },
+    "sqlAdminPassword": {
+      "value": "${{SQL_ADMIN_PASSWORD}}"
+    }
+  }
+}

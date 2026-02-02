@@ -1,0 +1,144 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.24/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.24",
+    "version": "1.0.0",
+    "id": "${{TEAMS_APP_ID}}",
+    "developer": {
+        "name": "Armely",
+        "websiteUrl": "https://www.armely.com",
+        "privacyUrl": "https://www.armely.com/privacy",
+        "termsOfUseUrl": "https://www.armely.com/terms"
+    },
+    "icons": {
+        "color": "color.png",
+        "outline": "outline.png"
+    },
+    "name": {
+        "short": "Mela Notetaker${{APP_NAME_SUFFIX}}",
+        "full": "Mela Notetaker for Armely"
+    },
+    "description": {
+        "short": "AI-powered meeting intelligence assistant by Armely",
+        "full": "Collaborator Agent for Armely - An intelligent meeting assistant that summarizes meetings, captures action items, identifies speakers, manages Planner tasks, sends email summaries, and helps teams collaborate more effectively."
+    },
+    "accentColor": "#6264A7",
+    "bots": [
+        {
+            "botId": "${{BOT_ID}}",
+            "scopes": [
+                "personal",
+                "team",
+                "groupChat"
+            ],
+            "supportsFiles": true,
+            "isNotificationOnly": false,
+            "supportsCalling": false,
+            "supportsVideo": false,
+            "commandLists": [
+                {
+                    "scopes": ["personal", "team", "groupChat"],
+                    "commands": [
+                        {
+                            "title": "summarize",
+                            "description": "Summarize recent conversation or meeting"
+                        },
+                        {
+                            "title": "action items",
+                            "description": "Find and create action items"
+                        },
+                        {
+                            "title": "search",
+                            "description": "Search through conversation history"
+                        },
+                        {
+                            "title": "meeting notes",
+                            "description": "Get meeting transcript and notes"
+                        },
+                        {
+                            "title": "create tasks",
+                            "description": "Create tasks in Microsoft Planner"
+                        },
+                        {
+                            "title": "send email",
+                            "description": "Compose and send email"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "meetingExtensionDefinition": {
+        "scenes": [],
+        "supportsStreaming": false,
+        "supportsAnonymousGuestUsers": false
+    },
+    "configurableTabs": [],
+    "staticTabs": [],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": [
+        "${{BOT_DOMAIN}}",
+        "*.botframework.com",
+        "graph.microsoft.com"
+    ],
+    "webApplicationInfo": {
+        "id": "${{AAD_APP_CLIENT_ID}}",
+        "resource": "api://botid-${{BOT_ID}}"
+    },
+    "authorization": {
+        "permissions": {
+            "resourceSpecific": [
+                {
+                    "name": "ChatMessage.Read.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "ChatMember.Read.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "TeamsActivity.Send.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "OnlineMeeting.ReadBasic.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "OnlineMeetingTranscript.Read.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "OnlineMeetingRecording.Read.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "ChannelMessage.Read.Group",
+                    "type": "Application"
+                },
+                {
+                    "name": "ChannelMeeting.ReadBasic.Group",
+                    "type": "Application"
+                },
+                {
+                    "name": "TeamMember.Read.Group",
+                    "type": "Application"
+                },
+                {
+                    "name": "TeamsActivity.Send.Group",
+                    "type": "Application"
+                },
+                {
+                    "name": "Calls.AccessMedia.Chat",
+                    "type": "Application"
+                },
+                {
+                    "name": "Calls.JoinGroupCalls.Chat",
+                    "type": "Application"
+                }
+            ]
+        }
+    }
+}
