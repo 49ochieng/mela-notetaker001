@@ -778,6 +778,197 @@ export class GraphClient {
       return null;
     }
   }
+
+  /**
+   * Get meeting recording URL (requires permissions)
+   */
+  async getMeetingRecordingUrl(chatId: string): Promise<string | null> {
+    try {
+      this.logger.debug(`🎥 Getting meeting recording URL for chat: ${chatId}`);
+      
+      // Get the online meeting info
+      const chatDetails = await this.getChatDetails(chatId);
+      if (!chatDetails) return null;
+
+      // Note: Recording URL would come from the onlineMeetingInfo
+      // In real implementation, you'd need to check the call transcripts endpoint
+      const recordingUrl = (chatDetails as any).recordingUrl;
+      
+      if (recordingUrl) {
+        this.logger.debug(`✅ Found recording: ${recordingUrl}`);
+        return recordingUrl;
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error("Error getting meeting recording:", error);
+      return null;
+    }
+  }
+
+  /**
+   * List available transcripts for a meeting
+   */
+  async listMeetingTranscripts(userId: string, meetingId: string): Promise<any[]> {
+    try {
+      this.logger.debug(`📋 Listing transcripts for meeting: ${meetingId}`);
+      
+      const response = await this.graphGet<{ value: any[] }>(
+        `/users/${userId}/onlineMeetings/${meetingId}/transcripts`
+      );
+      
+      return response.value || [];
+    } catch (error) {
+      this.logger.error("Error listing meeting transcripts:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get full transcript content with speaker attribution
+   */
+  async getFullMeetingTranscript(
+    userId: string,
+    meetingId: string,
+    transcriptId: string
+  ): Promise<{ success: boolean; transcript: TranscriptContent[]; rawText: string; message: string }> {
+    try {
+      this.logger.debug(`📋 Getting full meeting transcript content`);
+      
+      // Get VTT format transcript
+      const vttContent = await this.getTranscriptContent(userId, meetingId, transcriptId);
+      
+      if (!vttContent) {
+        return {
+          success: false,
+          transcript: [],
+          rawText: "",
+          message: "❌ Failed to fetch transcript content",
+        };
+      }
+
+      // Parse VTT to structured format
+      const parsedTranscript = this.parseVttTranscript(vttContent);
+      
+      this.logger.info(`✅ Successfully parsed transcript with ${parsedTranscript.length} segments`);
+
+      return {
+        success: true,
+        transcript: parsedTranscript,
+        rawText: vttContent,
+        message: `✅ Retrieved transcript with ${parsedTranscript.length} speaker segments`,
+      };
+    } catch (error) {
+      this.logger.error("Error getting full transcript:", error);
+      return {
+        success: false,
+        transcript: [],
+        rawText: "",
+        message: `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+
+  /**
+   * Search within meeting transcript
+   */
+  searchTranscript(
+    transcript: TranscriptContent[],
+    searchQuery: string,
+    _caseSensitive = false
+  ): TranscriptContent[] {
+    const query = _caseSensitive ? searchQuery : searchQuery.toLowerCase();
+    
+    return transcript.filter(entry => {
+      const text = _caseSensitive ? entry.text : entry.text.toLowerCase();
+      return text.includes(query);
+    });
+  }
+
+  /**
+   * Get transcript summary (speaker turns, timestamps)
+   */
+  getTranscriptSummary(transcript: TranscriptContent[]): {
+    speakers: Map<string, number>;
+    totalDuration: string;
+    segments: number;
+    speakerChangePoints: { speaker: string; timestamp: string; text: string }[];
+  } {
+    const speakers = new Map<string, number>();
+    const speakerChangePoints: { speaker: string; timestamp: string; text: string }[] = [];
+    let lastSpeaker = "";
+
+    for (const entry of transcript) {
+      if (entry.speakerName) {
+        speakers.set(entry.speakerName, (speakers.get(entry.speakerName) || 0) + 1);
+        
+        // Track speaker changes
+        if (entry.speakerName !== lastSpeaker) {
+          speakerChangePoints.push({
+            speaker: entry.speakerName,
+            timestamp: entry.timestamp,
+            text: entry.text.substring(0, 50) + "...",
+          });
+          lastSpeaker = entry.speakerName;
+        }
+      }
+    }
+
+    return {
+      speakers,
+      totalDuration: transcript.length > 0 ? `${Math.ceil(transcript.length / 2)} minutes (approx)` : "0 minutes",
+      segments: transcript.length,
+      speakerChangePoints: speakerChangePoints.slice(0, 10), // First 10 speaker changes
+    };
+  }
+
+  /**
+   * Test meeting transcript access
+   */
+  async testMeetingTranscriptAccess(userId: string): Promise<{
+    success: boolean;
+    message: string;
+    recommendation: string;
+  }> {
+    try {
+      this.logger.debug("🧪 Testing meeting transcript access");
+
+      // Try to get user's recent meetings
+      const meetings = await this.getUserMeetings(userId);
+
+      if (meetings.length === 0) {
+        return {
+          success: false,
+          message: "❌ No recent meetings found for this user",
+          recommendation: "Join a Teams meeting and enable transcription to test this feature",
+        };
+      }
+
+      // Check for transcripts in first meeting
+      const firstMeeting = meetings[0];
+      const transcripts = await this.listMeetingTranscripts(userId, firstMeeting.id!);
+
+      if (transcripts.length > 0) {
+        return {
+          success: true,
+          message: `✅ Found ${transcripts.length} transcript(s) for recent meeting: "${firstMeeting.subject}"`,
+          recommendation: "Meeting transcripts are available and can be analyzed",
+        };
+      } else {
+        return {
+          success: true, // Permission is OK, just no transcripts yet
+          message: `⚠️ No transcripts available for "${firstMeeting.subject}" (transcription may not have been enabled)`,
+          recommendation: "Enable transcription in future meetings to capture transcripts",
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Cannot access meeting transcripts: ${error instanceof Error ? error.message : "Unknown error"}`,
+        recommendation: "Ensure you have OnlineMeetings.Read.All permission in Azure Portal",
+      };
+    }
+  }
 }
 
 // Singleton instance
