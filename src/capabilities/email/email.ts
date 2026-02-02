@@ -34,6 +34,11 @@ export class EmailSenderCapability extends BaseCapability {
     const modelConfig = this.getModelConfig("email_sender");
     const graphClient = getGraphClient(this.logger);
 
+    // Add preliminary check that we have Graph API credentials
+    if (!process.env.AAD_APP_CLIENT_ID || !process.env.SECRET_AAD_APP_CLIENT_SECRET) {
+      this.logger.warn("⚠️ Graph API credentials not configured - email features will not work");
+    }
+
     const prompt = new ChatPrompt({
       instructions: EMAIL_SENDER_PROMPT,
       model: new OpenAIChatModel({
@@ -43,6 +48,28 @@ export class EmailSenderCapability extends BaseCapability {
         apiVersion: modelConfig.apiVersion,
       }),
     })
+      .function(
+        "check_graph_connectivity",
+        "Check if Graph API connection is working and credentials are valid",
+        {
+          type: "object" as const,
+          properties: {},
+        },
+        async () => {
+          this.logger.debug("🔍 Checking Graph API connectivity");
+
+          try {
+            const result = await graphClient.testConnectivity();
+            return JSON.stringify(result);
+          } catch (error) {
+            this.logger.error("Error checking connectivity:", error);
+            return JSON.stringify({
+              success: false,
+              message: `❌ Failed to connect to Graph API: ${error instanceof Error ? error.message : "Unknown error"}`,
+            });
+          }
+        }
+      )
       .function(
         "compose_email",
         "Compose a professional email based on purpose and content requirements",
@@ -288,6 +315,41 @@ export class EmailSenderCapability extends BaseCapability {
             return JSON.stringify({
               success: false,
               error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
+      )
+      .function(
+        "test_email_integration",
+        "Send a test email to verify email integration is working",
+        {
+          type: "object",
+          properties: {
+            recipient_email: {
+              type: "string",
+              description: "Email address to send the test email to",
+            },
+          },
+          required: ["recipient_email"],
+        },
+        async (args: { recipient_email: string }) => {
+          this.logger.debug(`🧪 Testing email integration`);
+
+          try {
+            const result = await graphClient.sendTestEmail(args.recipient_email);
+            
+            return JSON.stringify({
+              success: result.success,
+              message: result.message,
+              recommendation: result.success 
+                ? "✅ Email integration is working! All email features are enabled."
+                : "⚠️ Email integration test failed. Check Graph API permissions.",
+            });
+          } catch (error) {
+            this.logger.error("Error testing email:", error);
+            return JSON.stringify({
+              success: false,
+              message: error instanceof Error ? error.message : "Unknown error",
             });
           }
         }

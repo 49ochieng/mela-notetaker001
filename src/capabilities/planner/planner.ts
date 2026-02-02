@@ -36,6 +36,11 @@ export class PlannerCapability extends BaseCapability {
     const modelConfig = this.getModelConfig("planner");
     const graphClient = getGraphClient(this.logger);
 
+    // Validate Graph API credentials are present
+    if (!process.env.AAD_APP_CLIENT_ID || !process.env.SECRET_AAD_APP_CLIENT_SECRET) {
+      this.logger.warn("⚠️ Graph API credentials not configured - Planner features will not work");
+    }
+
     const prompt = new ChatPrompt({
       instructions: PLANNER_PROMPT,
       model: new OpenAIChatModel({
@@ -45,6 +50,38 @@ export class PlannerCapability extends BaseCapability {
         apiVersion: modelConfig.apiVersion,
       }),
     })
+      .function(
+        "check_planner_connectivity",
+        "Check if Graph API connection is working for Planner operations",
+        {
+          type: "object" as const,
+          properties: {},
+        },
+        async () => {
+          this.logger.debug("🔍 Checking Planner connectivity");
+
+          try {
+            const result = await graphClient.testConnectivity();
+            if (result.success) {
+              return JSON.stringify({
+                success: true,
+                message: `✅ Connected to Graph API as ${result.userEmail || "unknown"}. Planner operations should work.`,
+              });
+            } else {
+              return JSON.stringify({
+                success: false,
+                message: result.message,
+              });
+            }
+          } catch (error) {
+            this.logger.error("Error checking connectivity:", error);
+            return JSON.stringify({
+              success: false,
+              message: `❌ Failed to connect to Graph API: ${error instanceof Error ? error.message : "Unknown error"}`,
+            });
+          }
+        }
+      )
       .function(
         "get_plans",
         "List available Planner plans for the user or group",

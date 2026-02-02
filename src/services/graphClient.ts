@@ -126,53 +126,111 @@ export class GraphClient {
   }
 
   /**
-   * Make a GET request to Microsoft Graph API
+   * Make a GET request to Microsoft Graph API with retry logic
    */
-  private async graphGet<T>(endpoint: string): Promise<T> {
+  private async graphGet<T>(endpoint: string, retries = 3): Promise<T> {
     const token = await this.getAccessToken();
-    const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    let lastError: any = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      this.logger.error(`Graph API GET error: ${response.status} - ${errorText}`);
-      throw new Error(`Graph API error: ${response.status} - ${errorText}`);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          lastError = new Error(`Graph API error: ${response.status}`);
+          
+          // Don't retry on 4xx errors except 429 (rate limit)
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            const errorText = await response.text();
+            this.logger.error(`Graph API GET error: ${response.status} - ${errorText}`);
+            throw lastError;
+          }
+          
+          // Retry on 429 (rate limit) or 5xx errors
+          if (attempt < retries) {
+            const delay = Math.pow(2, attempt - 1) * 1000; // exponential backoff
+            this.logger.debug(`Rate limited or server error, retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+
+        return response.json();
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          this.logger.debug(`Retry attempt ${attempt}/${retries} in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
-    return response.json();
+    this.logger.error(`Graph API GET failed after ${retries} retries:`, lastError);
+    throw lastError;
   }
 
   /**
-   * Make a POST request to Microsoft Graph API
+   * Make a POST request to Microsoft Graph API with retry logic
    */
-  private async graphPost<T>(endpoint: string, body: any): Promise<T> {
+  private async graphPost<T>(endpoint: string, body: any, retries = 3): Promise<T> {
     const token = await this.getAccessToken();
-    const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    let lastError: any = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      this.logger.error(`Graph API POST error: ${response.status} - ${errorText}`);
-      throw new Error(`Graph API error: ${response.status} - ${errorText}`);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          lastError = new Error(`Graph API error: ${response.status}`);
+          
+          // Don't retry on 4xx errors except 429 (rate limit)
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            const errorText = await response.text();
+            this.logger.error(`Graph API POST error: ${response.status} - ${errorText}`);
+            throw lastError;
+          }
+          
+          // Retry on 429 (rate limit) or 5xx errors
+          if (attempt < retries) {
+            const delay = Math.pow(2, attempt - 1) * 1000; // exponential backoff
+            this.logger.debug(`Rate limited or server error, retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+
+        // Handle 204 No Content responses
+        if (response.status === 204) {
+          return {} as T;
+        }
+
+        return response.json();
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          this.logger.debug(`Retry attempt ${attempt}/${retries} in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
-    // Handle 204 No Content responses
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    return response.json();
+    this.logger.error(`Graph API POST failed after ${retries} retries:`, lastError);
+    throw lastError;
   }
 
   /**
@@ -542,6 +600,126 @@ export class GraphClient {
   }
 
   /**
+   * Test Graph API connectivity and credentials
+   */
+  async testConnectivity(): Promise<{ success: boolean; message: string; userEmail?: string }> {
+    try {
+      this.logger.debug("🧪 Testing Graph API connectivity...");
+      const user = await this.getCurrentUser();
+      
+      if (!user) {
+        return {
+          success: false,
+          message: "❌ Failed to retrieve user information. Check credentials.",
+        };
+      }
+
+      if (!user.mail) {
+        this.logger.warn(`⚠️ User found but no email: ${user.displayName}`);
+        return {
+          success: false,
+          message: `User found (${user.displayName}) but no email address configured.`,
+        };
+      }
+
+      this.logger.info(`✅ Graph API connected! User: ${user.displayName} (${user.mail})`);
+      return {
+        success: true,
+        message: `✅ Connected to Graph API as ${user.displayName}`,
+        userEmail: user.mail,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      this.logger.error("❌ Graph API connectivity test failed:", error);
+      return {
+        success: false,
+        message: `❌ Graph API test failed: ${errorMsg}`,
+      };
+    }
+  }
+
+  /**
+   * Get the bot's email address
+   */
+  getBotEmail(): string {
+    // Return configured bot email or use a default
+    return process.env.BOT_EMAIL || "bot@company.onmicrosoft.com";
+  }
+
+  /**
+   * Send a test email to verify email capabilities
+   */
+  async sendTestEmail(recipientEmail: string): Promise<{ success: boolean; message: string }> {
+    try {
+      this.logger.debug(`🧪 Sending test email to: ${recipientEmail}`);
+
+      // Validate email format
+      if (!recipientEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        return {
+          success: false,
+          message: `❌ Invalid email format: ${recipientEmail}`,
+        };
+      }
+
+      const testMessage: EmailMessage = {
+        subject: "[TEST] Collaborator Bot - Email Integration Test",
+        body: {
+          contentType: "HTML",
+          content: `
+<html>
+  <body>
+    <h2>✅ Email Test Successful!</h2>
+    <p>This is a test email from the Collaborator bot to verify email sending capabilities.</p>
+    <hr>
+    <p><strong>Test Details:</strong></p>
+    <ul>
+      <li>Sent at: ${new Date().toISOString()}</li>
+      <li>From: Collaborator Bot</li>
+      <li>Status: Email delivery working ✓</li>
+    </ul>
+    <hr>
+    <p>If you received this, email integration is working correctly! The Collaborator bot can now:</p>
+    <ul>
+      <li>Send meeting summaries</li>
+      <li>Share action items</li>
+      <li>Send task assignments</li>
+      <li>Compose professional emails</li>
+    </ul>
+  </body>
+</html>
+          `,
+        },
+        toRecipients: [
+          {
+            emailAddress: { address: recipientEmail },
+          },
+        ],
+      };
+
+      const result = await this.sendEmail(testMessage);
+      if (result) {
+        this.logger.info(`✅ Test email sent successfully to ${recipientEmail}`);
+        return {
+          success: true,
+          message: `✅ Test email sent successfully to ${recipientEmail}!`,
+        };
+      } else {
+        return {
+          success: false,
+          message: `❌ Failed to send test email. Check Mail.Send permissions in Graph API.`,
+        };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      this.logger.error("❌ Test email failed:", error);
+      return {
+        success: false,
+        message: `❌ Test email failed: ${errorMsg}`,
+      };
+    }
+  }
+
+  /**
    * Search users by display name
    */
   async searchUsers(query: string): Promise<any[]> {
@@ -613,8 +791,18 @@ export function getGraphClient(logger: ILogger): GraphClient {
       tenantId: process.env.AAD_APP_TENANT_ID || "",
     };
 
-    if (!config.clientId || !config.clientSecret || !config.tenantId) {
-      logger.warn("⚠️ Graph API configuration incomplete - some features may not work");
+    // Validate configuration
+    const missingFields: string[] = [];
+    if (!config.clientId) missingFields.push("AAD_APP_CLIENT_ID");
+    if (!config.clientSecret) missingFields.push("SECRET_AAD_APP_CLIENT_SECRET");
+    if (!config.tenantId) missingFields.push("AAD_APP_TENANT_ID");
+
+    if (missingFields.length > 0) {
+      logger.error(
+        `⚠️ CRITICAL: Missing Graph API configuration. Required environment variables not set:\n${missingFields.map(f => `   - ${f}`).join("\n")}\n\nGraph API features will NOT work. Please configure these variables in your .env file.`
+      );
+    } else {
+      logger.debug("✅ Graph API configuration loaded successfully");
     }
 
     graphClientInstance = new GraphClient(config, logger);
