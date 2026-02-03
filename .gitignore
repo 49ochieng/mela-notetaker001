@@ -4,8 +4,10 @@ env/.env.*.user
 env/.env.local
 .localConfigs.playground
 .localConfigs
+.localConfigs.testTool
 .notification.localstore.json
 .notification.playgroundstore.json
+.notification.testtoolstore.json
 appPackage/build
 
 # dependencies
