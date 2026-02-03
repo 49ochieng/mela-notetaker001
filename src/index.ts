@@ -75,7 +75,7 @@ app.on("message.submit.feedback", async ({ activity }) => {
 });
 
 app.on("message", async ({ send, activity, api }) => {
-  const botMentioned = activity.entities?.some((e) => e.type === "mention");
+  const botMentioned = activity.entities?.some((e: any) => e.type === "mention");
   const context = botMentioned
     ? await createMessageContext(storage, activity, api)
     : await createMessageContext(storage, activity);
