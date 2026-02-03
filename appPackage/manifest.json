@@ -28,15 +28,16 @@
             "scopes": [
                 "personal",
                 "team",
-                "groupChat"
+                "groupChat",
+                "meetings"
             ],
             "supportsFiles": true,
             "isNotificationOnly": false,
-            "supportsCalling": false,
-            "supportsVideo": false,
+            "supportsCalling": true,
+            "supportsVideo": true,
             "commandLists": [
                 {
-                    "scopes": ["personal", "team", "groupChat"],
+                    "scopes": ["personal", "team", "groupChat", "meetings"],
                     "commands": [
                         {
                             "title": "summarize",
@@ -69,8 +70,8 @@
     ],
     "meetingExtensionDefinition": {
         "scenes": [],
-        "supportsStreaming": false,
-        "supportsAnonymousGuestUsers": false
+        "supportsStreaming": true,
+        "supportsAnonymousGuestUsers": true
     },
     "configurableTabs": [],
     "staticTabs": [],
