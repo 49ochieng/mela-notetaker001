@@ -26,10 +26,6 @@ import {
 export class EmailSenderCapability extends BaseCapability {
   readonly name = "email_sender";
 
-  // Store pending email for confirmation (reserved for future confirmation workflow)
-  private _pendingEmail: EmailMessage | null = null;
-  private _pendingRecipients: string[] = [];
-
   createPrompt(context: MessageContext): ChatPrompt {
     const modelConfig = this.getModelConfig("email_sender");
     const graphClient = getGraphClient(this.logger);
