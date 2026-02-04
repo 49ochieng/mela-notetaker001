@@ -3,6 +3,8 @@ import { ILogger } from "@microsoft/teams.common";
 import { OpenAIChatModel } from "@microsoft/teams.openai";
 import { getGraphClient, TranscriptContent } from "../../services/graphClient";
 import { createAudioService, AudioService } from "../../services/audioService";
+
+// TypeScript compilation refresh
 import { MessageContext } from "../../utils/messageContext";
 import { BaseCapability, CapabilityDefinition } from "../capability";
 import { MEETING_MANAGER_PROMPT } from "./prompt";
@@ -182,12 +184,12 @@ export class MeetingManagerCapability extends BaseCapability {
               });
             }
 
-            const format = (args.audio_format as "wav" | "mp3" | "m4a") || "wav";
+            // Audio format support (wav, mp3, m4a) - reserved for future use
             const result = await this.audioService.transcribeAudioFromUrl(args.audio_url);
 
             if (result.success) {
-              // Identify speakers if audio transcription is successful
-              const speakerMap = this.audioService.identifySpeakers(result.segments);
+              // Speaker identification is performed but not yet used in output
+              this.audioService.identifySpeakers(result.segments);
               const stats = this.audioService.getAudioStats(result.segments);
 
               return JSON.stringify({
@@ -291,8 +293,7 @@ export class MeetingManagerCapability extends BaseCapability {
           this.logger.debug(`📅 Listing recent meetings with args:`, args);
 
           try {
-            // Calculate time range
-            const _limit = args.limit || 10; // Reserved for when Calendar.Read is implemented
+            // Limit parameter reserved for when Calendar.Read is implemented
             let startDate = new Date();
             
             switch (args.time_range?.toLowerCase()) {
