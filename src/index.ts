@@ -75,37 +75,51 @@ app.on("message.submit.feedback", async ({ activity }) => {
 });
 
 app.on("message", async ({ send, activity, api }) => {
-  const botMentioned = activity.entities?.some((e: any) => e.type === "mention");
-  const context = botMentioned
-    ? await createMessageContext(storage, activity, api)
-    : await createMessageContext(storage, activity);
+  try {
+    logger.debug(`📨 Received message: "${activity.text}" from ${activity.from.name}`);
+    
+    const botMentioned = activity.entities?.some((e: any) => e.type === "mention");
+    const context = botMentioned
+      ? await createMessageContext(storage, activity, api)
+      : await createMessageContext(storage, activity);
 
-  let trackedMessages;
+    let trackedMessages;
 
-  if (!activity.conversation.isGroup || botMentioned) {
-    // process request if One-on-One chat or if @mentioned in Groupchat
-    await send({ type: "typing" });
+    if (!activity.conversation.isGroup || botMentioned) {
+      // process request if One-on-One chat or if @mentioned in Groupchat
+      logger.debug("🤖 Bot processing message...");
+      await send({ type: "typing" });
 
-    const manager = new ManagerPrompt(context, logger.child("manager"));
-    const result = await manager.processRequest();
-    const formattedResult = finalizePromptResponse(result.response, context, logger);
+      const manager = new ManagerPrompt(context, logger.child("manager"));
+      const result = await manager.processRequest();
+      const formattedResult = finalizePromptResponse(result.response, context, logger);
 
-    const sent = await send(formattedResult);
-    formattedResult.id = sent.id;
+      const sent = await send(formattedResult);
+      formattedResult.id = sent.id;
 
-    trackedMessages = createMessageRecords([activity, formattedResult]);
-  } else {
-    trackedMessages = createMessageRecords([activity]);
+      trackedMessages = createMessageRecords([activity, formattedResult]);
+      logger.debug("✅ Response sent successfully");
+    } else {
+      trackedMessages = createMessageRecords([activity]);
+      logger.debug("👂 Listening to group conversation (not mentioned)");
+    }
+
+    await context.memory.addMessages(trackedMessages);
+  } catch (error) {
+    logger.error("❌ Error processing message:", error);
+    await send("Sorry, I encountered an error processing your message. Please try again.");
   }
-
-  logger.debug(trackedMessages);
-  await context.memory.addMessages(trackedMessages);
 });
 
 app.on("install.add", async ({ send }) => {
+  logger.debug("🎉 Bot installed/added to conversation");
   await send(
     "👋 Hi! I'm the Collab Agent 🚀. I'll listen to the conversation and can provide summaries, action items, or search for a message when asked!"
   );
+});
+
+app.on("conversationUpdate", async ({ activity }) => {
+  logger.debug(`🔄 Conversation update: ${activity.membersAdded ? 'members added' : 'conversation updated'}`);
 });
 
 (async () => {
@@ -129,5 +143,11 @@ app.on("install.add", async ({ send }) => {
 
   await app.start(port);
 
-  logger.debug(`🚀 Collab Agent started on port ${port}`);
+  logger.info(`\n${'='.repeat(60)}`);
+  logger.info(`✅ BOT IS READY TO TEST`);
+  logger.info(`${'='.repeat(60)}`);
+  logger.info(`🚀 Collab Agent listening on http://localhost:${port}`);
+  logger.info(`🛠️  DevTools available at http://localhost:3979/devtools`);
+  logger.info(`📱 Ready to receive messages from Microsoft 365 Agents Playground`);
+  logger.info(`${'='.repeat(60)}\n`);
 })();
