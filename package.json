@@ -15,12 +15,14 @@
         "dev:teamsfx": "env-cmd --silent -f .localConfigs npm run dev",
         "dev:teamsfx:testtool": "env-cmd --silent -f .localConfigs.testTool npm run dev",
         "dev:teamsfx:launch-testtool": "env-cmd --silent -f env/.env.testtool teamsapptester start",
+        "test:easy": "pwsh -File start-test.ps1",
         "clean": "npx rimraf ./dist",
         "build": "npx tsup",
         "start": "node ."
     },
     "dependencies": {
         "@azure/identity": "^4.0.0",
+        "@azure/msal-node": "^5.0.3",
         "@microsoft/teams.ai": "^2.0.5",
         "@microsoft/teams.api": "^2.0.5",
         "@microsoft/teams.apps": "^2.0.5",
@@ -28,6 +30,7 @@
         "@microsoft/teams.dev": "^2.0.5",
         "@microsoft/teams.openai": "^2.0.5",
         "@types/sql.js": "^1.4.9",
+        "chrono-node": "^2.9.0",
         "mssql": "^11.0.1",
         "sql.js": "^1.13.0"
     },
