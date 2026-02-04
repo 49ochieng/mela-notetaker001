@@ -118,6 +118,9 @@ export class GraphClient {
       this.tokenExpiry = new Date(Date.now() + (result.expiresOn?.getTime() || 3600000) - 300000);
 
       this.logger.debug("✅ Successfully acquired Graph API access token");
+      if (!this.accessToken) {
+        throw new Error("Failed to acquire access token");
+      }
       return this.accessToken;
     } catch (error) {
       this.logger.error("❌ Failed to acquire Graph API access token:", error);
@@ -236,29 +239,30 @@ export class GraphClient {
   /**
    * Make a PATCH request to Microsoft Graph API (reserved for future use)
    */
-  private async _graphPatch<T>(endpoint: string, body: any): Promise<T> {
-    const token = await this.getAccessToken();
-    const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      this.logger.error(`Graph API PATCH error: ${response.status} - ${errorText}`);
-      throw new Error(`Graph API error: ${response.status} - ${errorText}`);
-    }
-
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    return response.json();
-  }
+  // Commented out - reserved for future use
+  // private async _graphPatch<T>(endpoint: string, body: any): Promise<T> {
+  //   const token = await this.getAccessToken();
+  //   const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+  //     method: "PATCH",
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify(body),
+  //   });
+  //
+  //   if (!response.ok) {
+  //     const errorText = await response.text();
+  //     this.logger.error(`Graph API PATCH error: ${response.status} - ${errorText}`);
+  //     throw new Error(`Graph API error: ${response.status} - ${errorText}`);
+  //   }
+  //
+  //   if (response.status === 204) {
+  //     return {} as T;
+  //   }
+  //
+  //   return response.json();
+  // }
 
   // ==================== MEETING OPERATIONS ====================
 
@@ -638,13 +642,7 @@ export class GraphClient {
     }
   }
 
-  /**
-   * Get the bot's email address
-   */
-  getBotEmail(): string {
-    // Return configured bot email or use a default
-    return process.env.BOT_EMAIL || "bot@company.onmicrosoft.com";
-  }
+  // Removed duplicate getBotEmail method - using the one at line 410
 
   /**
    * Send a test email to verify email capabilities
